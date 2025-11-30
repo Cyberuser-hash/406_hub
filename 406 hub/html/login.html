@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - 406 Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .login-container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); width: 100%; max-width: 450px; }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo h1 { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .form-group { margin-bottom: 20px; }
+        .input-label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        .form-input { width: 100%; padding: 14px 16px; border: 2px solid #e8ecef; border-radius: 12px; font-size: 15px; transition: all 0.3s ease; background: #f8f9fa; }
+        .form-input:focus { outline: none; border-color: #667eea; background: white; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
+        .submit-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+        .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .message { margin-top: 15px; padding: 14px; border-radius: 10px; display: none; animation: slideIn 0.3s ease; border-left: 4px solid; }
+        .message.success { background: #d4f4e0; color: #155724; border-left-color: #27ae60; }
+        .message.error { background: #fde8e8; color: #721c24; border-left-color: #e74c3c; }
+        .register-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e8ecef; }
+        .register-link { color: #667eea; text-decoration: none; font-weight: 600; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1><i class="fas fa-graduation-cap"></i> 406 Hub</h1>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="input-label">Логин</label>
+                <input type="text" id="username" class="form-input" placeholder="Введите ваш логин" required>
+            </div>
+
+            <div class="form-group">
+                <label class="input-label">Пароль</label>
+                <input type="password" id="password" class="form-input" placeholder="Введите пароль" required>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">Войти в систему</button>
+
+            <div id="message" class="message"></div>
+        </form>
+
+        <div class="register-section">
+            <a href="index.html" class="register-link">Нет аккаунта? Зарегистрироваться</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            const submitBtn = document.getElementById('submitBtn');
+
+            messageDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Вход...';
+
+            try {
+                // ВАЖНО: Исправленный путь к handler
+                const response = await fetch('handlers/login.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    // Сохраняем данные пользователя
+                    localStorage.setItem('user', JSON.stringify(result.user));
+
+                    // ВАЖНО: Правильные редиректы по ролям
+                    setTimeout(() => {
+                        if (result.user.role === 'teacher' || result.user.role === 'admin') {
+                            window.location.href = 'teacher_dashboard.html';
+                        } else {
+                            window.location.href = 'student_dashboard.html';
+                        }
+                    }, 1000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения. Попробуйте позже.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Войти в систему';
+            }
+        });
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

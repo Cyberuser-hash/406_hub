@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация - 406 Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .register-container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); width: 100%; max-width: 450px; }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo h1 { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .form-group { margin-bottom: 20px; }
+        .input-label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; }
+        .input-wrapper { position: relative; }
+        .form-input { width: 100%; padding: 14px 16px; border: 2px solid #e8ecef; border-radius: 12px; font-size: 15px; transition: all 0.3s ease; background: #f8f9fa; }
+        .form-input:focus { outline: none; border-color: #667eea; background: white; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
+        .submit-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+        .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .message { margin-top: 15px; padding: 14px; border-radius: 10px; display: none; animation: slideIn 0.3s ease; border-left: 4px solid; }
+        .message.success { background: #d4f4e0; color: #155724; border-left-color: #27ae60; }
+        .message.error { background: #fde8e8; color: #721c24; border-left-color: #e74c3c; }
+        .login-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e8ecef; }
+        .login-link { color: #667eea; text-decoration: none; font-weight: 600; transition: all 0.3s ease; }
+        .login-link:hover { color: #5a6fd8; text-decoration: underline; }
+        .password-strength { margin-top: 5px; font-size: 12px; }
+        .strength-weak { color: #dc3545; }
+        .strength-medium { color: #ffc107; }
+        .strength-strong { color: #28a745; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Анимация загрузки */
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo">
+            <h1><i class="fas fa-graduation-cap"></i> 406 Hub</h1>
+            <p style="color: #666; margin-top: 10px;">Создайте аккаунт для доступа к курсам</p>
+        </div>
+        
+        <form id="registerForm">
+            <div class="form-group">
+                <label class="input-label">Имя пользователя *</label>
+                <input type="text" id="username" class="form-input" placeholder="Введите ваш логин" required minlength="3" maxlength="50">
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">Минимум 3 символа</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="input-label">Email адрес *</label>
+                <input type="email" id="email" class="form-input" placeholder="your@email.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="input-label">Пароль *</label>
+                <input type="password" id="password" class="form-input" placeholder="Не менее 6 символов" required minlength="6">
+                <div id="passwordStrength" class="password-strength"></div>
+            </div>
+            
+            <div class="form-group">
+                <label class="input-label">Подтвердите пароль *</label>
+                <input type="password" id="confirmPassword" class="form-input" placeholder="Повторите пароль" required>
+                <div id="passwordMatch" style="font-size: 12px; margin-top: 5px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label class="input-label">Имя (опционально)</label>
+                <input type="text" id="firstName" class="form-input" placeholder="Ваше имя">
+            </div>
+            
+            <div class="form-group">
+                <label class="input-label">Фамилия (опционально)</label>
+                <input type="text" id="lastName" class="form-input" placeholder="Ваша фамилия">
+            </div>
+            
+            <div class="form-group">
+                <label class="input-label">Группа (опционально)</label>
+                <input type="text" id="studentGroup" class="form-input" placeholder="Например: ПИ-21-1">
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <span id="btnText">Создать аккаунт</span>
+            </button>
+            
+            <div id="message" class="message"></div>
+        </form>
+
+        <div class="login-section">
+            <p style="color: #666; margin-bottom: 10px;">Уже есть аккаунт?</p>
+            <a href="login.html" class="login-link">Войти в систему</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('registerForm');
+            const messageDiv = document.getElementById('message');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const passwordStrength = document.getElementById('passwordStrength');
+            const passwordMatch = document.getElementById('passwordMatch');
+
+            // Проверка сложности пароля
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                let strength = '';
+                let strengthClass = '';
+
+                if (password.length === 0) {
+                    strength = '';
+                } else if (password.length < 6) {
+                    strength = 'Слабый пароль';
+                    strengthClass = 'strength-weak';
+                } else if (password.length < 8) {
+                    strength = 'Средний пароль';
+                    strengthClass = 'strength-medium';
+                } else {
+                    strength = 'Надежный пароль';
+                    strengthClass = 'strength-strong';
+                }
+
+                passwordStrength.textContent = strength;
+                passwordStrength.className = `password-strength ${strengthClass}`;
+            });
+
+            // Проверка совпадения паролей
+            confirmPasswordInput.addEventListener('input', function() {
+                const password = passwordInput.value;
+                const confirmPassword = this.value;
+
+                if (confirmPassword.length === 0) {
+                    passwordMatch.textContent = '';
+                } else if (password === confirmPassword) {
+                    passwordMatch.textContent = 'Пароли совпадают';
+                    passwordMatch.style.color = '#28a745';
+                } else {
+                    passwordMatch.textContent = 'Пароли не совпадают';
+                    passwordMatch.style.color = '#dc3545';
+                }
+            });
+
+            // Обработка формы регистрации
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const studentGroup = document.getElementById('studentGroup').value.trim();
+
+                // Скрываем предыдущие сообщения
+                messageDiv.style.display = 'none';
+
+                // Валидация
+                if (password !== confirmPassword) {
+                    showMessage('Пароли не совпадают', 'error');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showMessage('Пароль должен содержать минимум 6 символов', 'error');
+                    return;
+                }
+
+                if (username.length < 3) {
+                    showMessage('Логин должен содержать минимум 3 символа', 'error');
+                    return;
+                }
+
+                // Проверка email
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showMessage('Введите корректный email адрес', 'error');
+                    return;
+                }
+
+                // Блокируем кнопку и показываем загрузку
+                submitBtn.disabled = true;
+                btnText.innerHTML = '<div class="spinner"></div> Регистрация...';
+
+                try {
+                    const response = await fetch('handlers/register.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            email: email,
+                            password: password,
+                            first_name: firstName,
+                            last_name: lastName,
+                            student_group: studentGroup
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showMessage(result.message, 'success');
+                        
+                        // Перенаправляем на страницу входа через 2 секунды
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                    } else {
+                        showMessage(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showMessage('Ошибка соединения с сервером. Попробуйте позже.', 'error');
+                } finally {
+                    // Разблокируем кнопку
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Создать аккаунт';
+                }
+            });
+
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = `message ${type}`;
+                messageDiv.style.display = 'block';
+                
+                // Прокрутка к сообщению
+                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Автофокус на первом поле
+            document.getElementById('username').focus();
+        });
+    </script>
+</body>
+</html>

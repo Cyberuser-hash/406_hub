@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Задание - 406 Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f5f7fa; min-height: 100vh; }
+        .header { background: white; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .back-btn { background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
+        .assignment-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .assignment-title { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 15px; }
+        .assignment-description { line-height: 1.6; color: #444; margin-bottom: 25px; }
+        .upload-section { background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 20px; }
+        .file-input { width: 100%; padding: 15px; border: 2px dashed #667eea; border-radius: 8px; background: white; margin-bottom: 15px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; }
+        .btn-primary { background: #667eea; color: white; }
+        .message { padding: 15px; border-radius: 8px; margin: 15px 0; display: none; }
+        .message.success { background: #d4f4e0; color: #155724; }
+        .message.error { background: #fde8e8; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i> Назад</button>
+        <div id="userInfo"></div>
+    </div>
+
+    <div class="container">
+        <div class="assignment-card">
+            <h1 class="assignment-title" id="assignmentTitle">Загрузка задания...</h1>
+            <div class="assignment-description" id="assignmentDescription"></div>
+
+            <div class="upload-section">
+                <h3>Загрузить работу</h3>
+                <div id="message" class="message"></div>
+                
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" id="assignmentFile" class="file-input" required>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-upload"></i> Загрузить работу
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        const assignmentId = new URLSearchParams(window.location.search).get('assignment_id');
+
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('userInfo').textContent = user.login;
+        loadAssignment();
+
+        async function loadAssignment() {
+            try {
+                const response = await fetch(`handlers/get_assignment.php?assignment_id=${assignmentId}&student_id=${user.id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('assignmentTitle').textContent = result.data.title;
+                    document.getElementById('assignmentDescription').textContent = result.data.description || 'Описание отсутствует';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки задания:', error);
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('assignmentFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showMessage('Выберите файл для загрузки', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('assignment_file', file);
+            formData.append('student_login', user.login);
+            formData.append('assignment_id', assignmentId);
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+
+            try {
+                const response = await fetch('handlers/upload.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Работа успешно загружена!', 'success');
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка загрузки файла', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload"></i> Загрузить работу';
+            }
+        });
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+
+        function goBack() {
+            window.location.href = document.referrer || 'student_dashboard.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление курсами - 406 Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f5f7fa; min-height: 100vh; }
+        .header { background: white; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .welcome { font-size: 24px; font-weight: 600; color: #333; }
+        .logout-btn { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .back-btn { background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; margin-right: 10px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        .courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .course-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: transform 0.3s ease; }
+        .course-card:hover { transform: translateY(-5px); }
+        .course-header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; color: white; }
+        .course-title { font-size: 20px; font-weight: 600; margin-bottom: 5px; }
+        .course-content { padding: 20px; }
+        .course-stats { display: flex; justify-content: space-between; margin-bottom: 15px; color: #666; }
+        .course-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; margin: 50px auto; padding: 30px; border-radius: 15px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .form-input, .form-textarea { width: 100%; padding: 12px; border: 2px solid #e8ecef; border-radius: 8px; }
+        .module-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .assignment-item { background: #e7f3ff; padding: 10px; border-radius: 6px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i> Назад</button>
+            <span class="welcome" id="welcomeText">Управление курсами</span>
+        </div>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Выйти</button>
+    </div>
+
+    <div class="container">
+        <div class="action-bar">
+            <h2>Мои курсы</h2>
+            <button class="btn btn-success" onclick="showCreateCourseModal()">
+                <i class="fas fa-plus"></i> Создать курс
+            </button>
+        </div>
+
+        <div class="courses-grid" id="coursesContainer">
+            <!-- Курсы будут загружены через JS -->
+        </div>
+    </div>
+
+    <!-- Модальное окно создания курса -->
+    <div id="createCourseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Создать новый курс</h3>
+                <button class="close-btn" onclick="closeModal('createCourseModal')">&times;</button>
+            </div>
+            <form id="createCourseForm">
+                <div class="form-group">
+                    <label class="form-label">Название курса *</label>
+                    <input type="text" id="courseTitle" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea id="courseDescription" class="form-textarea" rows="4"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">Создать курс</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createCourseModal')">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования курса -->
+    <div id="editCourseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Редактировать курс</h3>
+                <button class="close-btn" onclick="closeModal('editCourseModal')">&times;</button>
+            </div>
+            <form id="editCourseForm">
+                <input type="hidden" id="editCourseId">
+                <div class="form-group">
+                    <label class="form-label">Название курса *</label>
+                    <input type="text" id="editCourseTitle" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea id="editCourseDescription" class="form-textarea" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label class="form-label">Модули курса</label>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addModuleField()">
+                            <i class="fas fa-plus"></i> Добавить модуль
+                        </button>
+                    </div>
+                    <div id="modulesContainer">
+                        <!-- Модули будут добавляться здесь -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editCourseModal')">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления задания -->
+    <div id="addAssignmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Добавить задание</h3>
+                <button class="close-btn" onclick="closeModal('addAssignmentModal')">&times;</button>
+            </div>
+            <form id="addAssignmentForm">
+                <input type="hidden" id="assignmentModuleId">
+                <div class="form-group">
+                    <label class="form-label">Название задания *</label>
+                    <input type="text" id="assignmentTitle" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание задания</label>
+                    <textarea id="assignmentDescription" class="form-textarea" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Максимальный балл</label>
+                    <input type="number" id="assignmentMaxScore" class="form-input" value="100" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Срок выполнения</label>
+                    <input type="datetime-local" id="assignmentDeadline" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Подпись преподавателя</label>
+                    <textarea id="assignmentSignature" class="form-textarea" rows="2" placeholder="Ваша подпись или комментарий"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success">Добавить задание</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addAssignmentModal')">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const teacher = JSON.parse(localStorage.getItem('user'));
+        
+        if (!teacher || (teacher.role !== 'teacher' && teacher.role !== 'admin')) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('welcomeText').textContent = `Управление курсами - ${teacher.login}`;
+        loadTeacherCourses();
+
+        async function loadTeacherCourses() {
+            try {
+                const response = await fetch('handlers/teacher_get_courses.php');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayCourses(result.data);
+                } else {
+                    showNoCourses();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки курсов:', error);
+                showNoCourses();
+            }
+        }
+
+        function displayCourses(courses) {
+            const container = document.getElementById('coursesContainer');
+            
+            if (courses.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">
+                        <i class="fas fa-graduation-cap" style="font-size: 48px; margin-bottom: 20px;"></i>
+                        <h3>У вас пока нет курсов</h3>
+                        <p>Создайте первый курс чтобы начать работу</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = courses.map(course => `
+                <div class="course-card">
+                    <div class="course-header">
+                        <div class="course-title">${course.title}</div>
+                        <div>${course.students_count || 0} студентов</div>
+                    </div>
+                    <div class="course-content">
+                        <div class="course-stats">
+                            <span>${course.modules_count || 0} модулей</span>
+                            <span>${course.assignments_count || 0} заданий</span>
+                        </div>
+                        <p style="color: #666; margin-bottom: 15px; min-height: 60px;">${course.description || 'Описание отсутствует'}</p>
+                        <div class="course-actions">
+                            <button class="btn btn-primary" onclick="editCourse(${course.id})">
+                                <i class="fas fa-edit"></i> Редактировать
+                            </button>
+                            <button class="btn btn-warning" onclick="manageCourse(${course.id})">
+                                <i class="fas fa-cogs"></i> Управление
+                            </button>
+                            <button class="btn btn-success" onclick="assignCourse(${course.id})">
+                                <i class="fas fa-user-plus"></i> Назначить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showCreateCourseModal() {
+            document.getElementById('createCourseModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function editCourse(courseId) {
+            // Загружаем данные курса и открываем модальное окно редактирования
+            loadCourseForEdit(courseId);
+            document.getElementById('editCourseModal').style.display = 'block';
+        }
+
+        function manageCourse(courseId) {
+            window.location.href = `course_edit.html?course_id=${courseId}`;
+        }
+
+        function assignCourse(courseId) {
+            // Открываем страницу назначения курса
+            window.location.href = `teacher_students.html?assign_course=${courseId}`;
+        }
+
+        // Обработка создания курса
+        document.getElementById('createCourseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('courseTitle').value,
+                description: document.getElementById('courseDescription').value,
+                teacher_id: teacher.id
+            };
+
+            try {
+                const response = await fetch('handlers/create_course.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Курс успешно создан!');
+                    closeModal('createCourseModal');
+                    document.getElementById('createCourseForm').reset();
+                    loadTeacherCourses(); // Перезагружаем список курсов
+                } else {
+                    alert('Ошибка: ' + result.message);
+                }
+            } catch (error) {
+                alert('Ошибка создания курса');
+            }
+        });
+
+        // Загрузка данных курса для редактирования
+        async function loadCourseForEdit(courseId) {
+            try {
+                const response = await fetch(`handlers/get_course_for_edit.php?course_id=${courseId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const course = result.data;
+                    document.getElementById('editCourseId').value = course.id;
+                    document.getElementById('editCourseTitle').value = course.title;
+                    document.getElementById('editCourseDescription').value = course.description || '';
+                    
+                    // Загружаем модули курса
+                    loadCourseModules(courseId);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки курса:', error);
+            }
+        }
+
+        // Загрузка модулей курса
+        async function loadCourseModules(courseId) {
+            try {
+                const response = await fetch(`handlers/get_course_modules.php?course_id=${courseId}`);
+                const result = await response.json();
+                
+                const modulesContainer = document.getElementById('modulesContainer');
+                if (result.success && result.data.length > 0) {
+                    modulesContainer.innerHTML = result.data.map(module => `
+                        <div class="module-item">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div>
+                                    <strong>${module.title}</strong>
+                                    ${module.description ? `<div style="color: #666; font-size: 14px;">${module.description}</div>` : ''}
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="addAssignment(${module.id})">
+                                        <i class="fas fa-plus"></i> Задание
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="assignments-${module.id}">
+                                ${module.assignments && module.assignments.length > 0 ? 
+                                    module.assignments.map(assignment => `
+                                        <div class="assignment-item">
+                                            <div><strong>${assignment.title}</strong></div>
+                                            <div style="font-size: 12px; color: #666;">
+                                                Баллы: ${assignment.max_score} | 
+                                                Дедлайн: ${assignment.deadline ? new Date(assignment.deadline).toLocaleDateString('ru-RU') : 'Не установлен'}
+                                            </div>
+                                            ${assignment.teacher_signature ? `<div style="font-size: 12px; color: #667eea;">Подпись: ${assignment.teacher_signature}</div>` : ''}
+                                        </div>
+                                    `).join('') : 
+                                    '<div style="color: #999; font-size: 12px;">Заданий нет</div>'
+                                }
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    modulesContainer.innerHTML = '<div style="color: #666; text-align: center;">Модулей нет</div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки модулей:', error);
+            }
+        }
+
+        // Добавление поля модуля
+        function addModuleField() {
+            const modulesContainer = document.getElementById('modulesContainer');
+            const moduleId = Date.now(); // Временный ID
+            modulesContainer.innerHTML += `
+                <div class="module-item" id="module-${moduleId}">
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" class="form-input" placeholder="Название модуля" style="flex: 1;">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeModule(${moduleId})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <textarea class="form-textarea" placeholder="Описание модуля" rows="2" style="margin-bottom: 10px;"></textarea>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="addAssignment(${moduleId})">
+                        <i class="fas fa-plus"></i> Добавить задание
+                    </button>
+                    <div id="assignments-${moduleId}"></div>
+                </div>
+            `;
+        }
+
+        function removeModule(moduleId) {
+            const moduleElement = document.getElementById(`module-${moduleId}`);
+            if (moduleElement) {
+                moduleElement.remove();
+            }
+        }
+
+        function addAssignment(moduleId) {
+            document.getElementById('assignmentModuleId').value = moduleId;
+            document.getElementById('addAssignmentModal').style.display = 'block';
+        }
+
+        // Обработка добавления задания
+        document.getElementById('addAssignmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                module_id: document.getElementById('assignmentModuleId').value,
+                title: document.getElementById('assignmentTitle').value,
+                description: document.getElementById('assignmentDescription').value,
+                max_score: document.getElementById('assignmentMaxScore').value,
+                deadline: document.getElementById('assignmentDeadline').value,
+                teacher_signature: document.getElementById('assignmentSignature').value
+            };
+
+            try {
+                const response = await fetch('handlers/add_assignment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Задание успешно добавлено!');
+                    closeModal('addAssignmentModal');
+                    document.getElementById('addAssignmentForm').reset();
+                    // Перезагружаем модули курса
+                    const courseId = document.getElementById('editCourseId').value;
+                    if (courseId) {
+                        loadCourseModules(courseId);
+                    }
+                } else {
+                    alert('Ошибка: ' + result.message);
+                }
+            } catch (error) {
+                alert('Ошибка добавления задания');
+            }
+        });
+
+        function goBack() {
+            window.location.href = 'teacher_dashboard.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        function showNoCourses() {
+            document.getElementById('coursesContainer').innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">
+                    <i class="fas fa-graduation-cap" style="font-size: 48px; margin-bottom: 20px;"></i>
+                    <h3>У вас пока нет курсов</h3>
+                    <p>Создайте первый курс чтобы начать работу</p>
+                </div>
+            `;
+        }
+
+        // Закрытие модальных окон при клике вне их
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

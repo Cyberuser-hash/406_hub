@@ -1,0 +1,86 @@
+<!-- Модальное окно добавления материала (улучшенное) -->
+<div id="addMaterialModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Добавить учебный материал</h3>
+            <button class="close-btn" onclick="closeModal('addMaterialModal')">&times;</button>
+        </div>
+        <form id="addMaterialForm" enctype="multipart/form-data">
+            <input type="hidden" id="materialModuleId">
+            
+            <div class="form-group">
+                <label class="form-label">Тип материала *</label>
+                <select id="materialType" class="form-select" onchange="toggleMaterialFields()" required>
+                    <option value="">Выберите тип</option>
+                    <option value="text">Текстовый материал</option>
+                    <option value="video">Видеоурок</option>
+                    <option value="pdf">PDF документ</option>
+                    <option value="presentation">Презентация</option>
+                    <option value="archive">Архив с файлами</option>
+                    <option value="code">Исходный код</option>
+                    <option value="link">Внешняя ссылка</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Название материала *</label>
+                <input type="text" id="materialTitle" class="form-input" placeholder="Введите название материала" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <textarea id="materialDescription" class="form-textarea" rows="3" placeholder="Краткое описание материала..."></textarea>
+            </div>
+
+            <!-- Поле для загрузки файлов -->
+            <div class="form-group" id="fileUploadField" style="display: none;">
+                <label class="form-label">Выберите файл *</label>
+                <input type="file" id="materialFile" class="form-input" accept=".pdf,.ppt,.pptx,.doc,.docx,.zip,.rar,.7z,.py,.java,.cpp,.c,.js,.html,.css,.txt">
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    Поддерживаемые форматы: PDF, PowerPoint, Word, архивные файлы, исходный код
+                </div>
+                <div id="filePreview" style="margin-top: 10px; display: none;">
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                        <i class="fas fa-file"></i> <span id="fileNamePreview"></span>
+                        <span id="fileSizePreview" style="color: #666; margin-left: 10px;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Поле для видео -->
+            <div class="form-group" id="videoUrlField" style="display: none;">
+                <label class="form-label">Ссылка на видео *</label>
+                <input type="url" id="videoUrl" class="form-input" placeholder="https://www.youtube.com/watch?v=... или https://vimeo.com/...">
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    Поддерживаются YouTube, Vimeo и другие видеоплатформы
+                </div>
+            </div>
+
+            <!-- Поле для ссылки -->
+            <div class="form-group" id="linkUrlField" style="display: none;">
+                <label class="form-label">URL ссылки *</label>
+                <input type="url" id="linkUrl" class="form-input" placeholder="https://...">
+            </div>
+
+            <!-- Поле для текстового контента -->
+            <div class="form-group" id="contentField">
+                <label class="form-label">Содержание материала *</label>
+                <textarea id="materialContent" class="form-textarea" rows="8" placeholder="Введите текст материала..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Порядковый номер</label>
+                <input type="number" id="materialOrder" class="form-input" min="1" value="1">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary" id="submitMaterialBtn">
+                    <i class="fas fa-plus"></i> Добавить материал
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addMaterialModal')">
+                    Отмена
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

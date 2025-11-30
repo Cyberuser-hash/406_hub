@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка работы - 406 Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f5f7fa; min-height: 100vh; }
+        .header { background: white; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .back-btn { background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+        .review-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .assignment-title { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 10px; }
+        .student-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .file-section { background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #007bff; }
+        .file-info { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .file-icon { font-size: 48px; color: #667eea; }
+        .review-form { margin-top: 25px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-select, .form-input, .form-textarea { width: 100%; padding: 12px; border: 2px solid #e8ecef; border-radius: 8px; font-size: 14px; }
+        .form-select:focus, .form-input:focus, .form-textarea:focus { outline: none; border-color: #667eea; }
+        .form-textarea { min-height: 120px; resize: vertical; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .message { padding: 15px; border-radius: 8px; margin: 15px 0; display: none; }
+        .message.success { background: #d4f4e0; color: #155724; border: 1px solid #c3e6cb; }
+        .message.error { background: #fde8e8; color: #721c24; border: 1px solid #f5c6cb; }
+        .score-display { font-size: 18px; font-weight: 600; color: #333; }
+        .file-preview { margin-top: 15px; }
+        .preview-frame { width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i> Назад к проверке</button>
+        <div id="teacherInfo"></div>
+    </div>
+
+    <div class="container">
+        <div class="review-card">
+            <h1 class="assignment-title" id="assignmentTitle">Загрузка...</h1>
+            
+            <div class="student-info">
+                <h3><i class="fas fa-user-graduate"></i> Информация о студенте</h3>
+                <div id="studentDetails">Загрузка...</div>
+                <div><strong>Статус:</strong> <span id="currentStatus" class="status-badge"></span></div>
+                <div><strong>Дата сдачи:</strong> <span id="submittedDate"></span></div>
+            </div>
+
+            <div class="file-section">
+                <h3><i class="fas fa-file-download"></i> Работа студента</h3>
+                <div class="file-info">
+                    <div class="file-icon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div>
+                        <div id="fileName" style="font-weight: 600; font-size: 16px;"></div>
+                        <div id="fileSize" style="color: #666;"></div>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="downloadStudentFile()">
+                        <i class="fas fa-download"></i> Скачать работу
+                    </button>
+                    <button class="btn btn-secondary" onclick="previewFile()" id="previewBtn" style="display: none;">
+                        <i class="fas fa-eye"></i> Предпросмотр
+                    </button>
+                </div>
+                
+                <div class="file-preview" id="filePreview" style="display: none;">
+                    <h4>Предпросмотр файла:</h4>
+                    <iframe class="preview-frame" id="previewFrame" src=""></iframe>
+                </div>
+            </div>
+
+            <div class="review-form">
+                <h3><i class="fas fa-edit"></i> Оценка работы</h3>
+                <div id="message" class="message"></div>
+                
+                <form id="reviewForm">
+                    <div class="form-group">
+                        <label class="form-label">Статус проверки</label>
+                        <select id="reviewStatus" class="form-select" required>
+                            <option value="in_review">На проверке</option>
+                            <option value="needs_rework">Требует доработки</option>
+                            <option value="completed">Проверено</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Оценка (0-100 баллов)</label>
+                        <input type="number" id="reviewScore" class="form-input" min="0" max="100" 
+                               placeholder="Введите оценку от 0 до 100">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Комментарии и рекомендации</label>
+                        <textarea id="reviewFeedback" class="form-textarea" 
+                                  placeholder="Обратная связь для студента..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Сохранить оценку
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="goBack()">
+                            Отмена
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teacher = JSON.parse(localStorage.getItem('user'));
+        const submissionId = new URLSearchParams(window.location.search).get('submission_id');
+        let currentSubmission = null;
+
+        if (!teacher || (teacher.role !== 'teacher' && teacher.role !== 'admin')) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('teacherInfo').textContent = `${teacher.first_name || teacher.login} (Преподаватель)`;
+        loadSubmission();
+
+        async function loadSubmission() {
+            try {
+                const response = await fetch(`handlers/get_submission.php?submission_id=${submissionId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentSubmission = result.data;
+                    displaySubmission(currentSubmission);
+                } else {
+                    showMessage('Ошибка загрузки данных', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                showMessage('Ошибка загрузки данных', 'error');
+            }
+        }
+
+        function displaySubmission(submission) {
+            // Заголовок задания
+            document.getElementById('assignmentTitle').textContent = submission.title;
+            
+            // Информация о студенте
+            document.getElementById('studentDetails').innerHTML = `
+                <strong>Студент:</strong> ${submission.student_name} (${submission.student_login})<br>
+                <strong>Курс:</strong> ${submission.course_title}<br>
+                <strong>Макс. оценка:</strong> ${submission.max_score} баллов
+            `;
+            
+            // Статус
+            const statusBadge = document.getElementById('currentStatus');
+            statusBadge.textContent = getStatusText(submission.status);
+            statusBadge.className = `status-badge status-${submission.status}`;
+            
+            // Дата сдачи
+            document.getElementById('submittedDate').textContent = 
+                new Date(submission.submitted_at).toLocaleDateString('ru-RU');
+
+            // Информация о файле
+            if (submission.file_path) {
+                document.getElementById('fileName').textContent = submission.file_name || 'Файл работы';
+                // Показываем кнопку предпросмотра для определенных типов файлов
+                const fileExt = submission.file_name ? submission.file_name.split('.').pop().toLowerCase() : '';
+                const previewable = ['pdf', 'txt', 'html', 'htm'].includes(fileExt);
+                if (previewable) {
+                    document.getElementById('previewBtn').style.display = 'inline-block';
+                }
+            }
+
+            // Заполняем форму текущими значениями
+            document.getElementById('reviewStatus').value = submission.status;
+            document.getElementById('reviewScore').value = submission.score || '';
+            document.getElementById('reviewFeedback').value = submission.teacher_feedback || '';
+        }
+
+        // Обработка формы оценки
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                submission_id: submissionId,
+                status: document.getElementById('reviewStatus').value,
+                score: document.getElementById('reviewScore').value || null,
+                feedback: document.getElementById('reviewFeedback').value
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+
+            try {
+                const response = await fetch('handlers/teacher_update_assignment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Оценка успешно сохранена!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'teacher_dashboard.html';
+                    }, 2000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка сохранения: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Сохранить оценку';
+            }
+        });
+
+        function downloadStudentFile() {
+            if (currentSubmission.file_path) {
+                const link = document.createElement('a');
+                link.href = currentSubmission.file_path;
+                link.download = currentSubmission.file_name || 'student_work';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        function previewFile() {
+            if (currentSubmission.file_path) {
+                const preview = document.getElementById('filePreview');
+                const frame = document.getElementById('previewFrame');
+                frame.src = currentSubmission.file_path;
+                preview.style.display = 'block';
+            }
+        }
+
+        function getStatusText(status) {
+            const statuses = {
+                'uploaded': 'Ожидает проверки',
+                'in_review': 'На проверке',
+                'needs_rework': 'Требует доработки',
+                'completed': 'Проверено'
+            };
+            return statuses[status] || status;
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+
+        function goBack() {
+            window.location.href = 'teacher_dashboard.html';
+        }
+    </script>
+</body>
+</html>

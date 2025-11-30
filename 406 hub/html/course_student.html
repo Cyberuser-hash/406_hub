@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курс - 406 Hub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f5f7fa; min-height: 100vh; }
+        .header { background: white; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .back-btn { background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .course-hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; }
+        .course-title { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+        .course-description { font-size: 18px; opacity: 0.9; max-width: 800px; }
+        .modules-container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .module-card { background: white; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .module-header { background: #f8f9fa; padding: 20px; border-bottom: 1px solid #e9ecef; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .module-title { font-size: 20px; font-weight: 600; color: #333; }
+        .module-content { padding: 0; max-height: 0; overflow: hidden; transition: all 0.3s ease; }
+        .module-content.expanded { padding: 20px; max-height: 5000px; }
+        .assignment-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #667eea; }
+        .assignment-title { font-weight: 600; margin-bottom: 8px; }
+        .assignment-deadline { color: #666; margin-bottom: 8px; }
+        .assignment-signature { color: #667eea; font-style: italic; margin-bottom: 8px; font-size: 14px; }
+        .assignment-status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; margin-bottom: 10px; }
+        .status-not_started { background: #6c757d; }
+        .status-uploaded { background: #ffc107; color: #000; }
+        .status-completed { background: #28a745; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; }
+        .btn-primary { background: #667eea; color: white; }
+        .deadline-warning { color: #dc3545; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i> Назад к курсам</button>
+        <div id="userInfo"></div>
+    </div>
+
+    <div class="course-hero">
+        <h1 class="course-title" id="courseTitle">Загрузка...</h1>
+        <p class="course-description" id="courseDescription"></p>
+    </div>
+
+    <div class="modules-container" id="modulesContainer">
+        <!-- Модули будут загружены -->
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        const courseId = new URLSearchParams(window.location.search).get('course_id');
+
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('userInfo').textContent = user.login;
+        loadCourse();
+
+        async function loadCourse() {
+            try {
+                const response = await fetch(`handlers/get_course_content.php?course_id=${courseId}&student_id=${user.id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('courseTitle').textContent = result.course.title;
+                    document.getElementById('courseDescription').textContent = result.course.description;
+                    displayModules(result.modules);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки курса:', error);
+            }
+        }
+
+        function displayModules(modules) {
+            const container = document.getElementById('modulesContainer');
+            container.innerHTML = '';
+
+            modules.forEach(module => {
+                const moduleEl = document.createElement('div');
+                moduleEl.className = 'module-card';
+                moduleEl.innerHTML = `
+                    <div class="module-header" onclick="toggleModule(this)">
+                        <div class="module-title">${module.title}</div>
+                        <div>
+                            <span>${module.assignments.length} заданий</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="module-content">
+                        ${module.assignments.map(assignment => {
+                            const now = new Date();
+                            const deadline = assignment.deadline ? new Date(assignment.deadline) : null;
+                            const isOverdue = deadline && deadline < now;
+                            const deadlineClass = isOverdue ? 'deadline-warning' : '';
+                            
+                            return `
+                            <div class="assignment-item">
+                                <div class="assignment-title">${assignment.title}</div>
+                                <div class="assignment-deadline ${deadlineClass}">
+                                    Дедлайн: ${assignment.deadline ? 
+                                        `${new Date(assignment.deadline).toLocaleDateString('ru-RU')} ${new Date(assignment.deadline).toLocaleTimeString('ru-RU')}` : 
+                                        'Не установлен'}
+                                    ${isOverdue ? ' (ПРОСРОЧЕНО)' : ''}
+                                </div>
+                                ${assignment.teacher_signature ? 
+                                    `<div class="assignment-signature">Преподаватель: ${assignment.teacher_signature}</div>` : ''}
+                                <div class="assignment-description" style="margin-bottom: 10px; color: #555;">
+                                    ${assignment.description || 'Описание отсутствует'}
+                                </div>
+                                <div class="assignment-status status-${assignment.student_status || 'not_started'}">
+                                    ${getStatusText(assignment.student_status || 'not_started')}
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary" onclick="openAssignment(${assignment.id})">
+                                        ${assignment.student_status === 'not_started' ? 'Выполнить задание' : 'Просмотреть задание'}
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(moduleEl);
+            });
+        }
+
+        function toggleModule(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('i');
+            
+            content.classList.toggle('expanded');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        function getStatusText(status) {
+            const statuses = {
+                'not_started': 'Не начато',
+                'uploaded': 'Работа загружена', 
+                'completed': 'Проверено'
+            };
+            return statuses[status] || status;
+        }
+
+        function openAssignment(assignmentId) {
+            window.location.href = `assignment.html?assignment_id=${assignmentId}`;
+        }
+
+        function goBack() {
+            window.location.href = 'student_dashboard.html';
+        }
+    </script>
+</body>
+</html>
